@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CloudOSINT v3.0 // Advanced Recon Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030810;--bg2:#060d16;--bg3:#0a1520;--panel:#0d1e2e;
+  --b1:#0e2535;--b2:#163650;--b3:#1e4a6a;
+  --g:#00ff88;--g2:#00cc6a;--g3:#003311;
+  --c:#00d4ff;--c2:#0099bb;--c3:#001e2a;
+  --r:#ff2244;--r2:#cc1133;--r3:#1e0008;
+  --a:#ffaa00;--a2:#cc8800;--a3:#1a0e00;
+  --p:#b060ff;--p2:#8040cc;--p3:#1a0030;
+  --t:#c8e0ee;--t2:#6a8fa8;--t3:#3a5a70;--t4:#1e3040;
+  --mono:'Share Tech Mono',monospace;
+  --head:'Rajdhani',sans-serif;
+  --display:'Orbitron',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--t);font-family:var(--mono);font-size:12px}
+
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px)}
+/* grid */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);
+  background-size:48px 48px}
+
+#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh}
+
+/* ── Header ─────────────────────────────────────────────── */
+header{
+  height:52px;background:linear-gradient(90deg,var(--bg2),var(--bg3),var(--bg2));
+  border-bottom:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  flex-shrink:0;position:relative;z-index:100;
+}
+.logo{
+  font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:3px;
+  color:var(--c);text-shadow:0 0 20px rgba(0,212,255,0.4);
+  display:flex;align-items:center;gap:10px
+}
+.logo svg{filter:drop-shadow(0 0 6px var(--c))}
+.logo em{color:var(--g);font-style:normal}
+.hdr-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--t2)}
+.hdr-right span{color:var(--t3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g)}
+.dot.scanning{background:var(--a);box-shadow:0 0 8px var(--a);animation:blink 0.6s infinite}
+.dot.done{background:var(--c);box-shadow:0 0 8px var(--c)}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{
+  width:320px;min-width:320px;background:var(--bg2);
+  border-right:1px solid var(--b1);overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.sb-section{padding:14px 16px;border-bottom:1px solid var(--b1)}
+.sec-label{
+  font-family:var(--head);font-size:10px;font-weight:600;
+  letter-spacing:3px;text-transform:uppercase;color:var(--c2);
+  display:flex;align-items:center;gap:8px;margin-bottom:10px
+}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b2),transparent)}
+
+.field{margin-bottom:10px}
+.field label{display:block;font-size:10px;color:var(--t3);margin-bottom:4px;letter-spacing:1px;text-transform:uppercase}
+.field input{
+  width:100%;background:var(--bg3);border:1px solid var(--b1);
+  color:var(--t);font-family:var(--mono);font-size:11px;
+  padding:7px 9px;border-radius:2px;outline:none;
+  transition:border-color .15s,box-shadow .15s
+}
+.field input:focus{border-color:var(--c2);box-shadow:0 0 0 2px rgba(0,212,255,0.08)}
+.field input::placeholder{color:var(--t4)}
+.field .hint{font-size:10px;color:var(--t3);margin-top:3px}
+
+/* Module toggles */
+.mods{display:flex;flex-direction:column;gap:6px}
+.mod{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--b1);
+  padding:7px 9px;border-radius:2px;cursor:pointer;transition:border-color .15s
+}
+.mod:hover{border-color:var(--b2)}
+.mod-name{flex:1;font-size:11px;color:var(--t)}
+.mod-tag{
+  font-size:9px;padding:1px 5px;border-radius:1px;
+  font-family:var(--head);font-weight:600;letter-spacing:1px;text-transform:uppercase
+}
+.tag-passive{background:var(--g3);color:var(--g)}
+.tag-low{background:var(--c3);color:var(--c)}
+.tag-medium{background:var(--a3);color:var(--a)}
+.tag-active{background:var(--r3);color:var(--r)}
+.sw{
+  width:28px;height:14px;background:var(--b1);border:1px solid var(--b2);
+  border-radius:7px;position:relative;transition:background .15s;flex-shrink:0
+}
+.sw::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:8px;height:8px;border-radius:50%;background:var(--t3);transition:all .15s
+}
+.mod.on .sw{background:var(--g3);border-color:var(--g)}
+.mod.on .sw::after{background:var(--g);left:16px}
+
+.scan-btn{
+  margin:14px 16px;padding:11px;
+  background:linear-gradient(135deg,var(--g3),#002211);
+  border:1px solid var(--g);color:var(--g);
+  font-family:var(--display);font-size:13px;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;cursor:pointer;
+  border-radius:2px;text-shadow:0 0 10px rgba(0,255,136,0.3);
+  box-shadow:0 0 15px rgba(0,255,136,0.1);
+  transition:all .2s
+}
+.scan-btn:hover{box-shadow:0 0 25px rgba(0,255,136,0.2);background:linear-gradient(135deg,#004422,#002e16)}
+.scan-btn:disabled{opacity:0.35;cursor:not-allowed}
+
+/* Stats */
+.stats{padding:10px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{background:var(--bg3);border:1px solid var(--b1);padding:8px 6px;text-align:center;border-radius:2px}
+.stat-v{font-family:var(--display);font-size:18px;font-weight:700;line-height:1}
+.stat-k{font-size:9px;color:var(--t3);margin-top:3px;letter-spacing:1px;text-transform:uppercase}
+.gc{color:var(--g)} .cc{color:var(--c)} .ac{color:var(--a)} .rc{color:var(--r)} .pc{color:var(--p)}
+
+/* Risk meter */
+.risk-wrap{padding:10px 16px 14px}
+.risk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.risk-label{font-family:var(--head);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t2)}
+.risk-score{font-family:var(--display);font-size:22px;font-weight:700;color:var(--g)}
+.risk-bar{height:5px;background:var(--b1);border-radius:3px;overflow:hidden}
+.risk-fill{height:100%;width:0%;border-radius:3px;transition:width 1s ease;
+  background:linear-gradient(90deg,var(--g),var(--a),var(--r))}
+.risk-findings{margin-top:10px}
+.rf-item{font-size:10px;color:var(--r);padding:3px 0;border-bottom:1px solid var(--b1);
+  display:flex;gap:6px;align-items:flex-start;line-height:1.4}
+.rf-item::before{content:'►';flex-shrink:0;margin-top:1px}
+
+/* ── Content: Tabs ───────────────────────────────────────── */
+.tabs{
+  display:flex;background:var(--bg2);border-bottom:1px solid var(--b1);
+  padding:0 16px;overflow-x:auto;flex-shrink:0
+}
+.tabs::-webkit-scrollbar{height:0}
+.tab{
+  padding:10px 14px;cursor:pointer;white-space:nowrap;
+  font-family:var(--head);font-size:12px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--t3);border-bottom:2px solid transparent;transition:all .15s;
+  position:relative
+}
+.tab:hover{color:var(--t)}
+.tab.active{color:var(--c);border-bottom-color:var(--c)}
+.tab .badge{
+  position:absolute;top:6px;right:4px;
+  background:var(--r);color:#fff;
+  font-size:8px;padding:1px 4px;border-radius:2px;
+  font-family:var(--mono);font-weight:normal;letter-spacing:0
+}
+
+/* ── Tab panels ──────────────────────────────────────────── */
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{
+  position:absolute;inset:0;overflow-y:auto;padding:14px 16px;
+  display:none
+}
+.panel.active{display:block}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-track{background:var(--bg)}
+.panel::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* Terminal */
+#term{
+  background:var(--bg2);border:1px solid var(--b1);
+  font-family:var(--mono);font-size:11px;
+  padding:12px;border-radius:2px;
+  height:calc(100% - 220px);min-height:240px;
+  overflow-y:auto
+}
+#term::-webkit-scrollbar{width:3px}
+#term::-webkit-scrollbar-thumb{background:var(--b2)}
+.tl{padding:1px 0;line-height:1.6;display:flex;gap:8px}
+.tt{color:var(--t4);min-width:66px;flex-shrink:0}
+.tm{flex:1;word-break:break-all}
+.t-start{color:var(--c)} .t-info{color:var(--t2)} .t-success{color:var(--g)}
+.t-warn{color:var(--a)} .t-error{color:var(--r)} .t-complete{color:var(--g);font-weight:bold}
+
+/* Phases */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.phase{
+  background:var(--bg3);border:1px solid var(--b1);
+  padding:8px;border-radius:2px;transition:border-color .3s
+}
+.phase.active{border-color:var(--c2);background:rgba(0,153,187,0.05)}
+.phase.done{border-color:var(--g3)}
+.phase.skipped{border-color:var(--b1);opacity:0.5}
+.ph-icon{font-size:16px;margin-bottom:4px}
+.ph-name{font-family:var(--head);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t)}
+.ph-st{font-size:9px;color:var(--t3);margin-top:2px}
+.phase.active .ph-st{color:var(--c)}
+.phase.done .ph-st{color:var(--g)}
+.phase.skipped .ph-st{color:var(--t4)}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:var(--bg3);border-bottom:1px solid var(--b2)}
+thead th{
+  padding:7px 8px;text-align:left;
+  font-family:var(--head);font-size:9px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--t2)
+}
+tbody tr{border-bottom:1px solid var(--b1);transition:background .1s}
+tbody tr:hover{background:var(--bg3)}
+td{padding:6px 8px;color:var(--t);word-break:break-all;vertical-align:middle}
+.empty{padding:40px;text-align:center;color:var(--t4);font-family:var(--head);font-size:12px;letter-spacing:2px}
+
+/* Severity badges */
+.sev{display:inline-block;padding:1px 5px;border-radius:1px;
+  font-size:9px;font-family:var(--head);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.sev-critical{background:var(--r3);color:var(--r);border:1px solid var(--r2)}
+.sev-high{background:var(--a3);color:var(--a);border:1px solid var(--a2)}
+.sev-medium{background:var(--c3);color:var(--c);border:1px solid var(--c2)}
+.sev-info{background:var(--g3);color:var(--g);border:1px solid var(--g2)}
+.sev-low{background:var(--b1);color:var(--t2);border:1px solid var(--b2)}
+
+/* Provider */
+.prov{display:inline-block;padding:1px 5px;border-radius:1px;
+  font-size:9px;font-family:var(--head);font-weight:600;letter-spacing:1px}
+.prov-aws{background:#1a0d00;color:#ff9900}
+.prov-azure{background:#000d22;color:#4da6ff}
+.prov-gcp{background:#001400;color:#4caf50}
+.prov-cf{background:#100800;color:#f6821f}
+.prov-x{background:var(--b1);color:var(--t2)}
+
+/* Source tags */
+.src{display:inline-block;padding:1px 5px;border-radius:1px;font-size:9px;
+  background:var(--bg);border:1px solid var(--b2);color:var(--t2);font-family:var(--head)}
+
+/* Export */
+.export-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.exp-btn{
+  padding:14px;background:var(--bg3);border:1px solid var(--b2);
+  color:var(--c);font-family:var(--head);font-size:12px;font-weight:600;
+  letter-spacing:2px;cursor:pointer;border-radius:2px;text-transform:uppercase;
+  transition:all .15s
+}
+.exp-btn:hover{border-color:var(--c);box-shadow:0 0 12px rgba(0,212,255,0.1)}
+.exp-btn.green{color:var(--g)}
+.exp-btn.green:hover{border-color:var(--g)}
+.exp-btn.amber{color:var(--a)}
+.json-pre{
+  background:var(--bg2);border:1px solid var(--b1);padding:14px;border-radius:2px;
+  font-size:10px;max-height:420px;overflow:auto;color:var(--t2);line-height:1.6;
+  white-space:pre-wrap
+}
+
+/* Setup guide */
+.setup-step{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:2px;
+  margin-bottom:10px;overflow:hidden
+}
+.setup-head{
+  padding:10px 14px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--head);font-size:13px;font-weight:600;letter-spacing:1px
+}
+.setup-body{padding:12px 14px;border-top:1px solid var(--b1);display:none}
+.setup-body.open{display:block}
+.code{
+  background:var(--bg);border:1px solid var(--b1);border-radius:2px;
+  padding:10px 12px;font-family:var(--mono);font-size:11px;
+  color:var(--g);line-height:1.7;margin:8px 0;overflow-x:auto;
+  white-space:pre
+}
+.note{font-size:11px;color:var(--t2);line-height:1.6;margin:6px 0}
+.step-num{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--c3);border:1px solid var(--c2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:10px;color:var(--c);flex-shrink:0
+}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .25s ease forwards}
+a{color:var(--c2);text-decoration:none} a:hover{color:var(--c);text-decoration:underline}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <polygon points="13,1 25,7 25,19 13,25 1,19 1,7" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+      <polygon points="13,6 20,10 20,16 13,20 6,16 6,10" stroke="#00ff88" stroke-width="1" fill="rgba(0,255,136,0.04)"/>
+      <circle cx="13" cy="13" r="2.5" fill="#00ff88"/>
+      <line x1="13" y1="1" x2="13" y2="6" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="13" y1="20" x2="13" y2="25" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="1" y1="7" x2="6" y2="10" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="20" y1="16" x2="25" y2="19" stroke="#00d4ff" stroke-width="0.5"/>
+    </svg>
+    CLOUD<em>OSINT</em> <span style="color:var(--t3);font-size:11px">v3.0</span>
+  </div>
+  <div class="hdr-right">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-lbl" style="color:var(--t2)">STANDBY</span>
+    <span>|</span>
+    <span id="clock" style="color:var(--t2)">--:--:-- UTC</span>
+    <span>|</span>
+    <span style="color:var(--t2)">12 MODULES</span>
+  </div>
+</header>
+
+<div class="body">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+
+  <div class="sb-section">
+    <div class="sec-label">Target</div>
+    <div class="field">
+      <label>Domain *</label>
+      <input type="text" id="i-domain" placeholder="example.com">
+    </div>
+    <div class="field">
+      <label>Keyword <span style="color:var(--t4)">(bucket names)</span></label>
+      <input type="text" id="i-keyword" placeholder="example">
+    </div>
+    <div class="field">
+      <label>Org Name <span style="color:var(--t4)">(Shodan search)</span></label>
+      <input type="text" id="i-org" placeholder="Example Corp">
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sec-label">API Keys</div>
+    <div class="field">
+      <label>GitHub Token</label>
+      <input type="password" id="i-gh" placeholder="ghp_xxxxxxxxxxxx">
+      <div class="hint">github.com/settings/tokens → read-only</div>
+    </div>
+    <div class="field">
+      <label>Shodan API Key</label>
+      <input type="password" id="i-sh" placeholder="your shodan key">
+      <div class="hint">shodan.io/dashboard</div>
+    </div>
+    <div class="field">
+      <label>Censys API ID</label>
+      <input type="password" id="i-ce-id" placeholder="censys api id">
+    </div>
+    <div class="field">
+      <label>Censys API Secret</label>
+      <input type="password" id="i-ce-sec" placeholder="censys api secret">
+      <div class="hint">censys.io/account/api</div>
+    </div>
+    <div class="field">
+      <label>VirusTotal API Key</label>
+      <input type="password" id="i-vt" placeholder="virustotal api key">
+      <div class="hint">virustotal.com/gui/my-apikey</div>
+    </div>
+    <div class="field">
+      <label>AWS Access Key <span style="color:var(--r);font-size:9px">for testing leaks</span></label>
+      <input type="password" id="i-aws-key" placeholder="AKIAIOSFODNN7EXAMPLE">
+    </div>
+    <div class="field">
+      <label>AWS Secret Key</label>
+      <input type="password" id="i-aws-sec" placeholder="wJalrXUtnFEMI/...">
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sec-label">Modules</div>
+    <div class="mods" id="mods">
+      <div class="mod on" data-id="crt"><span class="mod-name">CRT.sh Certs</span><span class="mod-tag tag-passive">PASSIVE</span><div class="sw"></div></div>
+      <div class="mod on" data-id="wayback"><span class="mod-name">Wayback Machine</span><span class="mod-tag tag-passive">PASSIVE</span><div class="sw"></div></div>
+      <div class="mod on" data-id="hackertarget"><span class="mod-name">HackerTarget API</span><span class="mod-tag tag-low">LOW</span><div class="sw"></div></div>
+      <div class="mod on" data-id="virustotal"><span class="mod-name">VirusTotal DNS</span><span class="mod-tag tag-low">LOW</span><div class="sw"></div></div>
+      <div class="mod on" data-id="dns"><span class="mod-name">DNS Brute Force</span><span class="mod-tag tag-low">LOW</span><div class="sw"></div></div>
+      <div class="mod on" data-id="storage"><span class="mod-name">Cloud Storage</span><span class="mod-tag tag-medium">MEDIUM</span><div class="sw"></div></div>
+      <div class="mod on" data-id="github"><span class="mod-name">GitHub OSINT</span><span class="mod-tag tag-medium">MEDIUM</span><div class="sw"></div></div>
+      <div class="mod on" data-id="shodan"><span class="mod-name">Shodan Recon</span><span class="mod-tag tag-active">ACTIVE</span><div class="sw"></div></div>
+      <div class="mod on" data-id="censys"><span class="mod-name">Censys Search</span><span class="mod-tag tag-active">ACTIVE</span><div class="sw"></div></div>
+      <div class="mod on" data-id="firebase"><span class="mod-name">Firebase / GCP</span><span class="mod-tag tag-medium">MEDIUM</span><div class="sw"></div></div>
+      <div class="mod on" data-id="azure"><span class="mod-name">Azure AD</span><span class="mod-tag tag-low">LOW</span><div class="sw"></div></div>
+      <div class="mod on" data-id="awsiam"><span class="mod-name">AWS IAM Test</span><span class="mod-tag tag-active">ACTIVE</span><div class="sw"></div></div>
+    </div>
+  </div>
+
+  <button class="scan-btn" id="scan-btn" onclick="startScan()">▶ INITIATE SCAN</button>
+
+  <div class="risk-wrap" id="risk-wrap">
+    <div class="risk-top">
+      <span class="risk-label">Risk Score</span>
+      <span class="risk-score" id="risk-val">—</span>
+    </div>
+    <div class="risk-bar"><div class="risk-fill" id="risk-fill"></div></div>
+    <div class="risk-findings" id="rf"></div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-v cc" id="s-subs">0</div><div class="stat-k">Subdomains</div></div>
+    <div class="stat"><div class="stat-v gc" id="s-live">0</div><div class="stat-k">Live Hosts</div></div>
+    <div class="stat"><div class="stat-v ac" id="s-bkts">0</div><div class="stat-k">Buckets</div></div>
+    <div class="stat"><div class="stat-v rc" id="s-pub">0</div><div class="stat-k">Public!</div></div>
+    <div class="stat"><div class="stat-v ac" id="s-gh">0</div><div class="stat-k">GH Hits</div></div>
+    <div class="stat"><div class="stat-v pc" id="s-sh">0</div><div class="stat-k">Services</div></div>
+  </div>
+
+</aside>
+
+<!-- Content -->
+<div class="content">
+  <nav class="tabs">
+    <div class="tab active" onclick="sw('terminal',this)">Terminal</div>
+    <div class="tab" onclick="sw('subdomains',this)">Subdomains <span class="badge" id="b-subs" style="display:none">0</span></div>
+    <div class="tab" onclick="sw('dns',this)">Live Hosts <span class="badge" id="b-dns" style="display:none">0</span></div>
+    <div class="tab" onclick="sw('storage',this)">Storage <span class="badge" id="b-stor" style="display:none">0</span></div>
+    <div class="tab" onclick="sw('github',this)">GitHub <span class="badge" id="b-gh" style="display:none">0</span></div>
+    <div class="tab" onclick="sw('shodan',this)">Shodan <span class="badge" id="b-sh" style="display:none">0</span></div>
+    <div class="tab" onclick="sw('cloud',this)">Azure/GCP/AWS</div>
+    <div class="tab" onclick="sw('censys',this)">Censys</div>
+    <div class="tab" onclick="sw('export',this)">Export</div>
+    <div class="tab" onclick="sw('setup',this)">Setup Guide</div>
+  </nav>
+
+  <div class="panels">
+
+    <!-- Terminal -->
+    <div class="panel active" id="p-terminal">
+      <div id="term">
+        <div class="tl"><span class="tt">--:--:--</span><span class="tm t-info">CloudOSINT v3.0 — 12 modules loaded</span></div>
+        <div class="tl"><span class="tt">--:--:--</span><span class="tm t-info">CRT.sh · Wayback · HackerTarget · VirusTotal · DNS · Storage · GitHub · Shodan · Censys · Firebase · Azure AD · AWS IAM</span></div>
+        <div class="tl"><span class="tt">--:--:--</span><span class="tm" style="color:var(--b2)">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span></div>
+        <div class="tl"><span class="tt">--:--:--</span><span class="tm t-info">Configure target + API keys → click INITIATE SCAN</span></div>
+      </div>
+      <div class="phases" id="phases">
+        <div class="phase" id="ph-crt"><div class="ph-icon">🔒</div><div class="ph-name">CRT.sh</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-wayback"><div class="ph-icon">📼</div><div class="ph-name">Wayback</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-hackertarget"><div class="ph-icon">🎯</div><div class="ph-name">HackerTarget</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-virustotal"><div class="ph-icon">🦠</div><div class="ph-name">VirusTotal</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-dns"><div class="ph-icon">🌐</div><div class="ph-name">DNS Enum</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-storage"><div class="ph-icon">🪣</div><div class="ph-name">Storage</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-github"><div class="ph-icon">🐙</div><div class="ph-name">GitHub</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-shodan"><div class="ph-icon">👁</div><div class="ph-name">Shodan</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-censys"><div class="ph-icon">🔍</div><div class="ph-name">Censys</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-firebase"><div class="ph-icon">🔥</div><div class="ph-name">Firebase</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-azure"><div class="ph-icon">☁</div><div class="ph-name">Azure AD</div><div class="ph-st">PENDING</div></div>
+        <div class="phase" id="ph-awsiam"><div class="ph-icon">🔑</div><div class="ph-name">AWS IAM</div><div class="ph-st">PENDING</div></div>
+      </div>
+    </div>
+
+    <!-- Subdomains (from CRT/Wayback/VT) -->
+    <div class="panel" id="p-subdomains">
+      <div class="tbl-wrap"><div id="sub-wrap"><div class="empty">[ NO DATA — RUN SCAN ]</div></div></div>
+    </div>
+
+    <!-- Live DNS -->
+    <div class="panel" id="p-dns">
+      <div class="tbl-wrap"><div id="dns-wrap"><div class="empty">[ NO DATA — RUN SCAN ]</div></div></div>
+    </div>
+
+    <!-- Storage -->
+    <div class="panel" id="p-storage">
+      <div class="tbl-wrap"><div id="stor-wrap"><div class="empty">[ NO DATA — RUN SCAN ]</div></div></div>
+    </div>
+
+    <!-- GitHub -->
+    <div class="panel" id="p-github">
+      <div class="tbl-wrap"><div id="gh-wrap"><div class="empty">[ NO DATA — RUN SCAN ]</div></div></div>
+    </div>
+
+    <!-- Shodan -->
+    <div class="panel" id="p-shodan">
+      <div class="tbl-wrap"><div id="sh-wrap"><div class="empty">[ NO DATA — REQUIRES SHODAN API KEY ]</div></div></div>
+    </div>
+
+    <!-- Azure / GCP / AWS -->
+    <div class="panel" id="p-cloud">
+      <div style="margin-bottom:10px;font-family:var(--head);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t2)">Azure AD · Firebase/GCP · AWS IAM</div>
+      <div class="tbl-wrap"><div id="cloud-wrap"><div class="empty">[ NO DATA — RUN SCAN ]</div></div></div>
+    </div>
+
+    <!-- Censys -->
+    <div class="panel" id="p-censys">
+      <div class="tbl-wrap"><div id="ce-wrap"><div class="empty">[ NO DATA — REQUIRES CENSYS API CREDENTIALS ]</div></div></div>
+    </div>
+
+    <!-- Export -->
+    <div class="panel" id="p-export">
+      <div class="sec-label" style="margin-bottom:12px">Export Scan Report</div>
+      <div class="export-grid">
+        <button class="exp-btn green" onclick="expJSON()">⬇ JSON Report</button>
+        <button class="exp-btn" onclick="expCSV()">⬇ CSV Export</button>
+        <button class="exp-btn amber" onclick="expHTML()">⬇ HTML Report</button>
+      </div>
+      <div class="sec-label" style="margin-bottom:8px">Raw JSON</div>
+      <pre class="json-pre" id="json-pre">(run a scan to see results)</pre>
+    </div>
+
+    <!-- Setup Guide -->
+    <div class="panel" id="p-setup">
+      <div class="sec-label" style="margin-bottom:12px">Complete Setup Guide</div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">1</div>
+          <span style="color:var(--g)">Python & Dependencies</span>
+        </div>
+        <div class="setup-body open">
+          <div class="note">Requires Python 3.9 or higher.</div>
+          <div class="code"># Clone or extract the toolkit
+cd cloud-osint-v3
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate       # Linux/Mac
+venv\Scripts\activate           # Windows
+
+# Install all dependencies
+pip install -r requirements.txt</div>
+          <div class="note">requirements.txt includes: flask, requests, dnspython, boto3</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">2</div>
+          <span style="color:var(--c)">Run the App</span>
+        </div>
+        <div class="setup-body">
+          <div class="code">python3 app.py
+# → Open http://127.0.0.1:5000</div>
+          <div class="note">Or use the provided run script:</div>
+          <div class="code">chmod +x run.sh && ./run.sh</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">3</div>
+          <span style="color:var(--a)">GitHub Token (Free)</span>
+        </div>
+        <div class="setup-body">
+          <div class="note">Without a token: 10 requests/hour limit. With token: 5,000/hour.</div>
+          <div class="code">1. Go to: github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Select ONLY: public_repo (read-only)
+4. Copy the ghp_xxxx token → paste in sidebar</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">4</div>
+          <span style="color:var(--r)">Shodan API Key ($)</span>
+        </div>
+        <div class="setup-body">
+          <div class="note">Shodan has a free tier (100 results/month). Membership plan ~$65/yr for full access.</div>
+          <div class="code">1. Register at: shodan.io
+2. Go to: shodan.io/dashboard
+3. Copy "API Key" → paste in sidebar
+4. Free tier: use "shodan.io/api-plan" for limits</div>
+          <div class="note">Free accounts: limited to 1 API result page. Still useful for basic scanning.</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">5</div>
+          <span style="color:var(--p)">Censys API (Free tier)</span>
+        </div>
+        <div class="setup-body">
+          <div class="note">Censys offers a free community tier with 250 queries/month.</div>
+          <div class="code">1. Register at: censys.io
+2. Go to: censys.io/account/api
+3. Copy "API ID" and "API Secret"
+4. Paste both into the sidebar fields</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">6</div>
+          <span style="color:var(--a)">VirusTotal API (Free)</span>
+        </div>
+        <div class="setup-body">
+          <div class="note">Free tier: 4 lookups/min, 500/day. Enough for passive DNS subdomain discovery.</div>
+          <div class="code">1. Register at: virustotal.com
+2. Go to: virustotal.com/gui/my-apikey
+3. Copy the API key → paste in sidebar</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">7</div>
+          <span style="color:var(--r)">AWS IAM Testing</span>
+        </div>
+        <div class="setup-body">
+          <div class="note" style="color:var(--r)">⚠ ONLY use this on keys you found via OSINT on systems you own or are authorized to test.</div>
+          <div class="code"># If you found a leaked AWS key via GitHub scanning:
+AWS Access Key: AKIAIOSFODNN7EXAMPLE
+AWS Secret Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+# The tool calls STS GetCallerIdentity to verify
+# If valid: shows Account ID + ARN + lists S3 buckets
+# Requires: pip install boto3</div>
+          <div class="note">boto3 is in requirements.txt. If you skip this module it simply reports "no credentials".</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">8</div>
+          <span style="color:var(--g)">No-Key Passive Mode</span>
+        </div>
+        <div class="setup-body">
+          <div class="note">Without ANY API keys, these modules still work 100%:</div>
+          <div class="code">✓ CRT.sh          — certificate transparency (free, no key)
+✓ Wayback Machine  — CDX API (free, no key)  
+✓ HackerTarget     — host search (free, no key)
+✓ DNS brute-force  — 80+ subdomain wordlist
+✓ Cloud Storage    — AWS/Azure/GCP HTTP probes
+✓ Firebase probe   — public RTDB detection
+✓ Azure AD         — OpenID tenant discovery</div>
+          <div class="note">This is already more than most commercial tools offer for free.</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-head" onclick="toggleSetup(this)">
+          <div class="step-num">9</div>
+          <span style="color:var(--c)">Legal & Ethics</span>
+        </div>
+        <div class="setup-body">
+          <div class="note" style="color:var(--r)">⚠ This tool is for authorized security testing ONLY.</div>
+          <div class="code">✓ Your own domains/infrastructure
+✓ Authorized penetration test targets
+✓ Bug bounty programs (within scope)
+✗ Any domain without written permission
+✗ Government/critical infrastructure
+✗ Production systems without authorization</div>
+          <div class="note">Unauthorized scanning may violate CFAA (US), Computer Misuse Act (UK), GDPR, and other laws. The tool authors accept no liability for misuse.</div>
+        </div>
+      </div>
+
+    </div><!-- /setup -->
+
+  </div><!-- /panels -->
+</div><!-- /content -->
+
+</div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+// ── Clock ───────────────────────────────────────────────────
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toISOString().slice(11,19)+' UTC'},1000)
+
+// ── Module toggles ──────────────────────────────────────────
+document.querySelectorAll('.mod').forEach(m=>{
+  m.addEventListener('click',()=>m.classList.toggle('on'))
+})
+
+// ── Tab switching ───────────────────────────────────────────
+function sw(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById('p-'+id).classList.add('active')
+}
+
+// ── Setup accordion ─────────────────────────────────────────
+function toggleSetup(head){
+  const body=head.nextElementSibling
+  body.classList.toggle('open')
+}
+
+// ── Terminal ─────────────────────────────────────────────────
+function tlog(msg,type){
+  const t=document.getElementById('term')
+  const d=document.createElement('div')
+  d.className='tl fi'
+  const icons={start:'▶',info:'·',success:'✓',warn:'!',error:'✗',complete:'★'}
+  d.innerHTML=`<span class="tt">${new Date().toISOString().slice(11,19)}</span><span class="tm t-${type}">${icons[type]||'·'} ${esc(msg)}</span>`
+  t.appendChild(d)
+  t.scrollTop=t.scrollHeight
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ── Phase tracker ────────────────────────────────────────────
+function setPhase(id,status,count){
+  const el=document.getElementById('ph-'+id)
+  if(!el)return
+  el.classList.remove('active','done','skipped')
+  if(status==='running')  el.classList.add('active')
+  else if(status==='done')el.classList.add('done')
+  else if(status==='skipped')el.classList.add('skipped')
+  el.querySelector('.ph-st').textContent=
+    status==='running'?'RUNNING...' :
+    status==='done'   ?`DONE${count!=null?' ('+count+')':''}` :
+    status==='skipped'?'SKIPPED':'PENDING'
+}
+
+// ── Badge counters ───────────────────────────────────────────
+const counters={subs:0,dns:0,stor:0,gh:0,sh:0}
+function incrBadge(id){
+  counters[id]++
+  const el=document.getElementById('b-'+id)
+  if(el){el.textContent=counters[id];el.style.display='inline'}
+}
+function resetBadges(){
+  Object.keys(counters).forEach(k=>counters[k]=0)
+  document.querySelectorAll('.badge').forEach(b=>{b.textContent='0';b.style.display='none'})
+}
+
+// ── Table helpers ─────────────────────────────────────────────
+function tb(wrapId,headers){
+  const w=document.getElementById(wrapId)
+  if(w.querySelector('table'))return w.querySelector('tbody')
+  w.innerHTML=''
+  const t=document.createElement('table')
+  t.innerHTML=`<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody></tbody>`
+  w.appendChild(t)
+  return t.querySelector('tbody')
+}
+function addRow(wrapId,headers,cells){
+  const body=tb(wrapId,headers)
+  const tr=document.createElement('tr')
+  tr.className='fi'
+  tr.innerHTML=cells.map(c=>`<td>${c}</td>`).join('')
+  body.appendChild(tr)
+}
+function sev(s){return `<span class="sev sev-${s||'info'}">${(s||'info').toUpperCase()}</span>`}
+function prov(p){
+  const cls=!p?'prov-x':p.includes('AWS')?'prov-aws':p.includes('Azure')?'prov-azure':p.includes('GCP')||p.includes('Google')?'prov-gcp':p.includes('Cloudflare')?'prov-cf':'prov-x'
+  return `<span class="prov ${cls}">${p||'?'}</span>`
+}
+function src(s){return `<span class="src">${s||''}</span>`}
+
+// ── Scan ─────────────────────────────────────────────────────
+let sid=null,es=null,allData={}
+async function startScan(){
+  const domain=document.getElementById('i-domain').value.trim()
+  if(!domain){alert('Enter a target domain');return}
+
+  // reset UI
+  resetBadges()
+  document.querySelectorAll('.phase').forEach(p=>{
+    p.classList.remove('active','done','skipped')
+    p.querySelector('.ph-st').textContent='PENDING'
+  })
+  ;['sub-wrap','dns-wrap','stor-wrap','gh-wrap','sh-wrap','cloud-wrap','ce-wrap'].forEach(id=>{
+    document.getElementById(id).innerHTML='<div class="empty">[ SCANNING... ]</div>'
+  })
+  document.getElementById('term').innerHTML=''
+  document.getElementById('rf').innerHTML=''
+  document.getElementById('stats').style.display='none'
+  document.getElementById('risk-val').textContent='—'
+  document.getElementById('risk-fill').style.width='0%'
+  allData={}
+
+  const cfg={
+    domain,
+    keyword:document.getElementById('i-keyword').value.trim(),
+    org:document.getElementById('i-org').value.trim(),
+    github_token:document.getElementById('i-gh').value.trim(),
+    shodan_key:document.getElementById('i-sh').value.trim(),
+    censys_id:document.getElementById('i-ce-id').value.trim(),
+    censys_secret:document.getElementById('i-ce-sec').value.trim(),
+    vt_key:document.getElementById('i-vt').value.trim(),
+    aws_key:document.getElementById('i-aws-key').value.trim(),
+    aws_secret:document.getElementById('i-aws-sec').value.trim(),
+  }
+
+  const btn=document.getElementById('scan-btn')
+  btn.disabled=true; btn.textContent='⏳ SCANNING...'
+  const dot=document.getElementById('status-dot')
+  dot.className='dot scanning'
+  document.getElementById('status-lbl').textContent='SCANNING'
+
+  const resp=await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
+  const {scan_id}=await resp.json()
+  sid=scan_id
+
+  if(es)es.close()
+  es=new EventSource(`/api/stream/${scan_id}`)
+  es.onmessage=onEvent
+  es.onerror=()=>tlog('Stream disconnected','error')
+}
+
+function onEvent(e){
+  const m=JSON.parse(e.data)
+  if(m.type==='ping')return
+
+  if(m.type==='start')   tlog(m.data,'start')
+  else if(m.type==='info')    tlog(m.data,'info')
+  else if(m.type==='success') tlog(m.data,'success')
+  else if(m.type==='warn')    tlog(m.data,'warn')
+  else if(m.type==='error')   tlog(m.data,'error')
+  else if(m.type==='complete'){
+    tlog(m.data,'complete')
+    onDone()
+  }
+  else if(m.type==='phase')   setPhase(m.data.id,m.data.status,m.data.count)
+  else if(m.type==='crt_results') populateSubs(m.data)
+  else if(m.type==='wayback_results') addSubsFrom(m.data,'wayback')
+  else if(m.type==='dns_hit')     addDnsRow(m.data)
+  else if(m.type==='bucket_found') addStorRow(m.data)
+  else if(m.type==='github_hit')  addGhRow(m.data)
+  else if(m.type==='shodan_hit')  addShRow(m.data)
+  else if(m.type==='firebase_hit') addCloudRow(m.data,'Firebase','critical')
+  else if(m.type==='azure_hit')   addCloudRow2(m.data)
+  else if(m.type==='awsiam_hit')  addCloudRow(m.data,'AWS IAM',m.data.severity)
+  else if(m.type==='censys_hit')  addCeRow(m.data)
+  else if(m.type==='summary')     updateSummary(m.data)
+}
+
+function onDone(){
+  const btn=document.getElementById('scan-btn')
+  btn.disabled=false; btn.textContent='▶ INITIATE SCAN'
+  const dot=document.getElementById('status-dot')
+  dot.className='dot done'
+  document.getElementById('status-lbl').textContent='COMPLETE'
+  if(es)es.close()
+  fetch(`/api/results/${sid}`).then(r=>r.json()).then(d=>{
+    allData=d
+    document.getElementById('json-pre').textContent=JSON.stringify(d,null,2)
+  })
+}
+
+// ── Row builders ──────────────────────────────────────────────
+function populateSubs(certs){
+  certs.forEach(c=>{
+    addRow('sub-wrap',
+      ['Subdomain','Issuer','Valid From','Valid To','Source'],
+      [`<span style="color:var(--c)">${esc(c.subdomain)}</span>`,
+       `<span style="color:var(--t2);font-size:10px">${esc(c.issuer)}</span>`,
+       c.not_before,c.not_after,src('crt.sh')]
+    )
+    incrBadge('subs')
+  })
+}
+function addSubsFrom(subs,source){
+  subs.forEach(s=>{
+    addRow('sub-wrap',
+      ['Subdomain','Issuer','Valid From','Valid To','Source'],
+      [`<span style="color:var(--c)">${esc(s.subdomain)}</span>`,'—','—','—',src(source)]
+    )
+    incrBadge('subs')
+  })
+}
+function addDnsRow(d){
+  addRow('dns-wrap',
+    ['Subdomain','IPs','Cloud Provider','Source'],
+    [`<span style="color:var(--g)">${esc(d.subdomain)}</span>`,
+     `<span style="color:var(--t2)">${(d.ips||[]).join(', ')}</span>`,
+     prov(d.cloud),src(d.source||'dns')]
+  )
+  incrBadge('dns')
+}
+function addStorRow(b){
+  addRow('stor-wrap',
+    ['Bucket Name','Provider','Status','Hint','Severity'],
+    [`<span style="color:var(--a)">${esc(b.name)}</span>`,
+     prov(b.provider),
+     `<span style="color:${b.status==='PUBLIC'?'var(--r)':'var(--g)'};font-weight:bold">${esc(b.status)}</span>`,
+     `<span style="color:var(--t2);font-size:10px">${esc(b.hint||'')}</span>`,
+     sev(b.severity)]
+  )
+  incrBadge('stor')
+}
+function addGhRow(g){
+  addRow('gh-wrap',
+    ['Repository','File','Type','Link','Severity'],
+    [`<span style="color:var(--c)">${esc(g.repo)}</span>`,
+     `<span style="color:var(--a)">${esc(g.file)}</span>`,
+     `<span style="color:var(--t2)">${esc(g.type)}</span>`,
+     `<a href="${esc(g.url)}" target="_blank">View →</a>`,
+     sev(g.severity)]
+  )
+  incrBadge('gh')
+}
+function addShRow(s){
+  addRow('sh-wrap',
+    ['IP','Port','Org','Service','Country','Severity'],
+    [`<span style="color:var(--g)">${esc(s.ip)}</span>`,
+     `<span style="color:var(--c)">${s.port}</span>`,
+     `<span style="color:var(--t2)">${esc(s.org)}</span>`,
+     `<span style="color:var(--a)">${esc(s.service)}</span>`,
+     `<span style="color:var(--t2)">${esc(s.country)}</span>`,
+     sev(s.severity)]
+  )
+  incrBadge('sh')
+}
+function addCloudRow(d,type,severity){
+  addRow('cloud-wrap',
+    ['Type','Detail','Status/ARN','Extra','Severity'],
+    [`<span style="color:var(--a)">${type}</span>`,
+     `<a href="${esc(d.url||'#')}" target="_blank">${esc(d.url||d.account_id||'')}</a>`,
+     `<span style="color:var(--r)">${esc(d.status||d.arn||'')}</span>`,
+     `<span style="color:var(--t2);font-size:10px">${esc(d.data_size?d.data_size+' bytes':d.user_id||'')}</span>`,
+     sev(severity)]
+  )
+}
+function addCloudRow2(a){
+  addRow('cloud-wrap',
+    ['Type','Detail','Status/ARN','Extra','Severity'],
+    [`<span style="color:var(--c)">${esc(a.type||'Azure')}</span>`,
+     `<span style="color:var(--t2)">${esc(a.domain||'')}</span>`,
+     `<span style="color:var(--g)">${esc(a.tenant_id||a.status||'')}</span>`,
+     `<span style="color:var(--t2);font-size:10px">${esc(a.detail||'')}</span>`,
+     sev(a.severity)]
+  )
+}
+function addCeRow(c){
+  addRow('ce-wrap',
+    ['Type','Name/IP','Fingerprint','Source'],
+    [`<span style="color:var(--p)">${esc(c.type)}</span>`,
+     `<span style="color:var(--c)">${esc(c.name)}</span>`,
+     `<span style="color:var(--t2);font-size:10px">${esc(c.fingerprint||'')}</span>`,
+     src('censys')]
+  )
+}
+
+// ── Summary ────────────────────────────────────────────────
+function updateSummary(s){
+  document.getElementById('stats').style.display='grid'
+  document.getElementById('s-subs').textContent=s.total_subdomains
+  document.getElementById('s-live').textContent=s.live_hosts
+  document.getElementById('s-bkts').textContent=s.buckets_found
+  document.getElementById('s-pub').textContent=s.public_buckets
+  document.getElementById('s-gh').textContent=s.github_hits
+  document.getElementById('s-sh').textContent=s.shodan_services
+  const sc=s.risk_score||0
+  document.getElementById('risk-val').textContent=sc+'/100'
+  document.getElementById('risk-fill').style.width=sc+'%'
+  document.getElementById('risk-val').style.color=sc>60?'var(--r)':sc>30?'var(--a)':'var(--g)'
+}
+
+// ── Export ─────────────────────────────────────────────────
+function expJSON(){
+  if(!allData.domain){alert('Run a scan first');return}
+  dl(JSON.stringify(allData,null,2),'application/json',`osint-${allData.domain}-${Date.now()}.json`)
+}
+function expCSV(){
+  if(!allData.domain){alert('Run a scan first');return}
+  let csv='Type,Name,Detail,Severity\n'
+  ;(allData.dns_live||[]).forEach(d=>csv+=`DNS Live,${d.subdomain},"${(d.ips||[]).join(' ')}",info\n`)
+  ;(allData.buckets||[]).forEach(b=>csv+=`Storage,${b.name},${b.url},${b.severity}\n`)
+  ;(allData.github||[]).forEach(g=>csv+=`GitHub,${g.repo}/${g.file},${g.url},${g.severity}\n`)
+  ;(allData.shodan||[]).forEach(s=>csv+=`Shodan,${s.ip}:${s.port},${s.service},${s.severity}\n`)
+  ;(allData.firebase||[]).forEach(f=>csv+=`Firebase,${f.url},OPEN,critical\n`)
+  ;(allData.azure||[]).forEach(a=>csv+=`AzureAD,${a.domain||''},${a.tenant_id||''},${a.severity}\n`)
+  ;(allData.awsiam||[]).forEach(a=>csv+=`AWSIAM,${a.account_id||''},${a.arn||''},${a.severity}\n`)
+  dl(csv,'text/csv',`osint-${allData.domain}-${Date.now()}.csv`)
+}
+function expHTML(){
+  if(!allData.domain){alert('Run a scan first');return}
+  const html=`<!DOCTYPE html><html><head><title>OSINT Report — ${allData.domain}</title>
+<style>body{font-family:monospace;background:#030810;color:#c8e0ee;padding:20px}
+h1{color:#00d4ff}h2{color:#00ff88;margin-top:20px}
+table{border-collapse:collapse;width:100%;margin-top:8px}
+th{background:#0a1520;color:#6a8fa8;padding:6px 10px;text-align:left;font-size:11px}
+td{padding:5px 10px;border-bottom:1px solid #0e2535;font-size:12px}
+.r{color:#ff2244}.g{color:#00ff88}.a{color:#ffaa00}.c{color:#00d4ff}
+</style></head><body>
+<h1>CloudOSINT Report — ${allData.domain}</h1>
+<p>Generated: ${new Date().toISOString()} | Risk Score: <span class="${allData.summary?.risk_score>60?'r':allData.summary?.risk_score>30?'a':'g'}">${allData.summary?.risk_score||0}/100</span></p>
+<h2>Summary</h2>
+<p>Subdomains: ${allData.summary?.total_subdomains||0} | Live Hosts: ${allData.summary?.live_hosts||0} | Public Buckets: <span class="r">${allData.summary?.public_buckets||0}</span> | GitHub Hits: ${allData.summary?.github_hits||0}</p>
+<h2>Public Cloud Buckets (${(allData.buckets||[]).filter(b=>b.status==='PUBLIC').length})</h2>
+<table><tr><th>Name</th><th>Provider</th><th>URL</th></tr>
+${(allData.buckets||[]).filter(b=>b.status==='PUBLIC').map(b=>`<tr><td class="a">${b.name}</td><td>${b.provider}</td><td><a href="${b.url}" style="color:#00d4ff">${b.url}</a></td></tr>`).join('')}
+</table>
+<h2>GitHub Exposures (${(allData.github||[]).length})</h2>
+<table><tr><th>Repo</th><th>File</th><th>Type</th><th>Link</th></tr>
+${(allData.github||[]).map(g=>`<tr><td class="c">${g.repo}</td><td class="a">${g.file}</td><td>${g.type}</td><td><a href="${g.url}" style="color:#00d4ff">View</a></td></tr>`).join('')}
+</table>
+<h2>Live Hosts (${(allData.dns_live||[]).length})</h2>
+<table><tr><th>Subdomain</th><th>IPs</th><th>Cloud</th></tr>
+${(allData.dns_live||[]).slice(0,100).map(d=>`<tr><td class="g">${d.subdomain}</td><td style="color:#6a8fa8">${(d.ips||[]).join(', ')}</td><td>${d.cloud||''}</td></tr>`).join('')}
+</table>
+</body></html>`
+  dl(html,'text/html',`osint-report-${allData.domain}-${Date.now()}.html`)
+}
+function dl(content,mime,filename){
+  const a=document.createElement('a')
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}))
+  a.download=filename; a.click()
+}
+</script>
+</body>
+</html>
